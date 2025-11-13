@@ -333,7 +333,7 @@ public static final int NO_BRANCH = 0;
 
 - ЦС - 5
 - Добавил массив, который ограничивает ход захвата соседних веток.
-- Изменил проверку на 1 if вместо кучи разных добавив метод inBounds()
+- Изменил проверку на 1 if вместо кучи разных добавив единую проверку.
 
 ```java
  public static final int AGE_OF_DEATH = 3;
@@ -355,7 +355,8 @@ public static final int NO_BRANCH = 0;
                         int ni = i + d[0];
                         int nj = j + d[1];
 
-                        if (inBounds(ni, nj, rows, cols) && tree[ni][nj] < AGE_OF_DEATH) {
+                        if (ni >= 0 && ni < rows && nj >= 0 && nj < cols 
+                                && tree[ni][nj] < AGE_OF_DEATH) {
                             tree[ni][nj] = NO_BRANCH;
                         }
                     }
@@ -364,16 +365,11 @@ public static final int NO_BRANCH = 0;
         }
         return tree;
     }
-
-    // 
-    private static boolean inBounds(int i, int j, int rows, int cols) {
-        return i >= 0 && i < rows && j >= 0 && j < cols;
-    }
 ```
 
-И затем, я решил посмотреть мой дипломный проект, где тоже как я и думал, есть места с повышенным ЦС.
+И затем, я решил посмотреть мой дипломный проект, где тоже как я и думал, есть места с повышенным ЦС.  
 Я взял метод импорта данных из CSV.
-Конкретно метод сохранения импорта данных в БД
+Конкретно метод сохранения импорта данных в БД.
 
 Что было **ДО**:  
 - Огромный метод с кучей if и else
