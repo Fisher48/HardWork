@@ -2,7 +2,7 @@
 
 Для первого примера я взял класс ReportService:
 
-#### Пример - 1 ReportService
+#### Пример - 1: ReportService
 ```java
 /**
  * ReportService - это класс предназначенный для формирования отчета о пробегах автомобиля.
@@ -128,6 +128,8 @@ public class ReportService {
 ```
 ___
 
+Второй пример - это ReportFlowService:
+
 #### Пример - 2: ReportFlowService
 ```java
 /**
@@ -136,7 +138,8 @@ ___
  * Данный сервис находится между TelegramBot (сообщения, callback, кнопки) и ReportService (чистая бизнес-логика отчетов)
  * Задача данного сервиса - связать пользовательский ввод с корректным вызовом нужного метода в нужном сервисе (отчетов).
  * TelegramBot - получил сообщение, затем передал в этот сервис, а уже ReportFlowService знает на каком этапе диалог и что делать дальше.
- * 
+ * Сервис использует необходимые сервисы для обработки данных.
+ * Изменения в этом сервисе не затрагивают бизнес-процессы, а влияют только на сценарий диалога пользователя
  */
 
 @Service
@@ -380,11 +383,246 @@ class ReportFlowService {
   }
 }
 ```
-
 ___
 
-#### Пример - 3:
-```java
+3-й пример я беру из пет-проекта разработки интернет-магазина инструментов:
 
+#### Пример - 3: ImageStorageService
+```java
+/**
+ * ImageStorageService - это класс предназначенный для сохранения и удаления изображений, связанных с сущностями приложения (товары и категории).
+ * Схема хранения изображений может быть изменена в любой момент на другие типы помимо физического хранения в проекте.
+ * Класс является частью слоя взаимодействия с файловой системой и изолирует часть приложения от деталей: 
+ * структуры хранения, формирование имён файлов и публичных URL.
+ * Данный класс не влияет на бизнес-логику приложения.
+ * Это самостоятельный сервис не использующий какие-либо зависимости.
+ */
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class ImageStorageService {
+
+    @Value("${app.upload.path:./uploads/images}")
+    private String uploadPath;
+
+    @Value("${app.base.url:http://localhost:8080}")
+    private String baseUrl;
+
+    public ProductImage saveImage(MultipartFile file, String productTitle) {
+        log.info("Attempting to save image: {}, size: {}, type: {}",
+                file.getOriginalFilename(), file.getSize(), file.getContentType());
+
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Файл пустой");
+        }
+
+        if (!isImage(file)) {
+            throw new IllegalArgumentException("Файл не является изображением");
+        }
+
+        try {
+            // Создаем директорию если не существует
+            Path uploadDir = Paths.get(uploadPath, "products");
+            Files.createDirectories(uploadDir);
+
+            // Генерируем уникальное имя файла
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = getFileExtension(originalFileName);
+            String fileName = generateFileName(productTitle, fileExtension);
+
+            // Сохраняем файл
+            Path filePath = uploadDir.resolve(fileName);
+            Files.write(filePath, file.getBytes());
+
+            log.info("Image saved: {}", filePath);
+
+            // Создаем и возвращаем сущность ProductImage
+            return ProductImage.builder()
+                    .url(baseUrl + "/images/products/" + fileName) // Полный URL
+                    .alt(productTitle) // Базовое описание
+                    .sortOrder(0)
+                    .build();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save image: " + e.getMessage(), e);
+        }
+    }
+
+    public List<ProductImage> saveImages(List<MultipartFile> files, String productTitle) {
+        List<ProductImage> productImages = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            if (!file.isEmpty() && isImage(file)) {
+                try {
+                    ProductImage productImage = saveImage(file, productTitle);
+                    productImages.add(productImage);
+                } catch (Exception e) {
+                    log.warn("Не удалось сохранить изображение: {}", file.getOriginalFilename(), e);
+                }
+            }
+        }
+        return productImages;
+    }
+
+    public void deleteImage(String imageUrl) {
+        try {
+            // Извлекаем имя файла из URL
+            String fileName = extractFileNameFromUrl(imageUrl);
+            Path filePath = Paths.get(uploadPath,"products", fileName);
+
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("Image deleted: {}", filePath);
+            } else {
+                log.warn("File not found for deletion: {}", filePath);
+            }
+        } catch (IOException e) {
+            log.error("Failed to delete image: {}", e.getMessage());
+        }
+    }
+
+    public boolean isImage(MultipartFile file) {
+        String contentType = file.getContentType();
+        return contentType != null && contentType.startsWith("image/");
+    }
+
+    private String getFileExtension(String fileName) {
+        if (fileName == null || !fileName.contains(".")) {
+            return ".jpg";
+        }
+        return fileName.substring(fileName.lastIndexOf("."));
+    }
+
+    private String generateFileName(String productTitle, String extension) {
+        String safeTitle = productTitle.replaceAll("[^a-zA-Z0-9-]", "_");
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        return safeTitle + "_" + uniqueId + "_" + System.currentTimeMillis() + extension;
+    }
+
+    private String extractFileNameFromUrl(String imageUrl) {
+        // Извлекаем имя файла из URL: http://localhost:8080/images/filename.jpg -> filename.jpg
+        if (imageUrl.contains("/")) {
+            return imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+        }
+        return imageUrl;
+    }
+
+    /**
+     * Сохраняет изображение категории
+     */
+    public String saveCategoryImage(MultipartFile file, String categoryTitle) {
+        log.info("Saving category image: {}, category: {}, size: {}",
+                file.getOriginalFilename(), categoryTitle, file.getSize());
+
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Файл пустой");
+        }
+
+        if (!isImage(file)) {
+            throw new IllegalArgumentException("Файл не является изображением");
+        }
+
+        // Проверяем размер для категорий (максимум 2MB)
+        if (file.getSize() > 2 * 1024 * 1024) {
+            throw new IllegalArgumentException("Размер изображения категории не должен превышать 2MB");
+        }
+
+        try {
+            // Создаем поддиректорию для категорий
+            Path categoryDir = Paths.get(uploadPath, "categories");
+            Files.createDirectories(categoryDir);
+
+            // Генерируем уникальное имя файла
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = getFileExtension(originalFileName);
+            String fileName = generateCategoryFileName(categoryTitle, fileExtension);
+
+            // Сохраняем файл
+            Path filePath = categoryDir.resolve(fileName);
+            Files.write(filePath, file.getBytes());
+
+            // Формируем URL для доступа к изображению
+            String imageUrl = baseUrl + "/images/categories/" + fileName;
+            log.info("Category image saved: {}", imageUrl);
+
+            return imageUrl;
+
+        } catch (IOException e) {
+            log.error("Failed to save category image: {}", e.getMessage(), e);
+            throw new RuntimeException("Не удалось сохранить изображение категории: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Генерирует миниатюру для категории (пока возвращает тот же URL)
+     */
+    public String generateThumbnail(String originalImageUrl) {
+        log.info("Generating thumbnail for: {}", originalImageUrl);
+        // Пока просто возвращаем тот же URL
+        // В будущем можно реализовать реальную генерацию миниатюр
+        return originalImageUrl;
+    }
+
+    /**
+     * Удаляет изображение категории
+     */
+    public void deleteCategoryImage(String imageUrl) {
+        try {
+            // Извлекаем имя файла из URL
+            String fileName = extractFileNameFromUrl(imageUrl);
+
+            // Учитываем что файл в поддиректории categories
+            Path filePath = Paths.get(uploadPath, "categories", fileName);
+
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("Category image deleted: {}", filePath);
+            } else {
+                log.warn("Category image file not found: {}", filePath);
+            }
+        } catch (IOException e) {
+            log.error("Failed to delete category image: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Генерирует имя файла для категории
+     */
+    private String generateCategoryFileName(String categoryTitle, String extension) {
+        String safeTitle = categoryTitle.replaceAll("[^a-zA-Z0-9-]", "_");
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        return "category_" + safeTitle + "_" + uniqueId + "_" + System.currentTimeMillis() + extension;
+    }
+
+    @PostConstruct
+    public void init() {
+        try {
+            // Создаем основную директорию
+            Files.createDirectories(Paths.get(uploadPath));
+
+            // Создаем поддиректорию для категорий
+            Path categoryDir = Paths.get(uploadPath, "categories");
+            Files.createDirectories(categoryDir);
+
+            log.info("Upload directories created:");
+            log.info(" - Main: {}", uploadPath);
+            log.info(" - Categories: {}", categoryDir);
+
+        } catch (IOException e) {
+            log.warn("Could not create upload directories: {}", e.getMessage());
+        }
+    }
+}
 ```
+
+Что хочется сказать о "Самодокументируемом коде" - это важная для понимания вещь, с которой не так просто работать. 
+Ведь разработчик, который непосредственно пишет код в проекте, он держит весь контекст и не может мыслить более высоко и абстрактно, по крайней мере начинающий).
+Всегда, когда ты пишешь комментарий, хочется написать именно то, "Что код делает?", хотя нужно по типу "Как этот код вписывается в общую программу?".
+Я старался абстрагироваться от кода, особенно понимая и зная, что он должен делать, как будто ни разу его не видел, но получилось не совсем хорошо, но иду в правильном направлении.
+Конечно очень помогает в этом плане спецификация и дизайн кода. Если сразу писать хорошо, с понятными именами, не спеша - это даст лучшее понимание кода другими людьми.
+И тогда объяснения сами собой пропадут, хоть и не всегда так получается.
+Как говорится _"То, что в проекте очевидно для вас, совсем не очевидно для всех остальных"_. 
+Поэтому стоит писать комментарии таким образом, чтобы потом они не становились устаревшими, не рассинхронились с другим кодом, 
+не быть излишне комментируемым и тренировать данный софт-скилл. В первую очередь они будут полезны другим разработчикам и это уже вежливость.
+
 
