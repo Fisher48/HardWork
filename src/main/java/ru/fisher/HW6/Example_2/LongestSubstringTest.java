@@ -18,4 +18,16 @@ public class LongestSubstringTest {
         assertEquals(3, LongestSubstring.lengthOfLongestSubstring(s));
     }
 
+    @Test
+    void oneSubstringFromThreeCharsTest() {
+        String s = "abcabcbb";
+        assertEquals(3, LongestSubstring.lengthOfLongestSubstring(s));
+    }
+
+    @Test
+    void oneSubstringFromOneSameCharsTest() {
+        String s = "bbbbb";
+        assertEquals(1, LongestSubstring.lengthOfLongestSubstring(s));
+    }
+
 }
