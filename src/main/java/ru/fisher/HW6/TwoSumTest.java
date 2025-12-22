@@ -19,4 +19,19 @@ public class TwoSumTest {
         int target = 6;
         assertArrayEquals(new int[]{1, 5}, TwoSum.twoSum(array, target));
     }
+
+    @Test
+    void twoSumWithFourElementsTest() {
+        int[] array = new int[]{2, 7, 11, 15};
+        int target = 9;
+        assertArrayEquals(new int[]{2, 7}, TwoSum.twoSum(array, target));
+    }
+
+    @Test
+    void twoSumWithThreeElementsFromExampleTest() {
+        int[] array = new int[]{3, 2, 4};
+        int target = 6;
+        assertArrayEquals(new int[]{2, 4}, TwoSum.twoSum(array, target));
+    }
+
 }
