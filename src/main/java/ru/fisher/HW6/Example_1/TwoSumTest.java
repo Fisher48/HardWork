@@ -1,4 +1,4 @@
-package ru.fisher.HW6;
+package ru.fisher.HW6.Example_1;
 
 import org.junit.jupiter.api.Test;
 
