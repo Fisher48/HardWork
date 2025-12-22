@@ -12,4 +12,11 @@ public class TwoSumTest {
         int target = 13;
         assertArrayEquals(new int[]{5, 8}, TwoSum.twoSum(array, target));
     }
+
+    @Test
+    void twoSumWithThreeElementsTest() {
+        int[] array = new int[]{1, 12, 5};
+        int target = 6;
+        assertArrayEquals(new int[]{1, 5}, TwoSum.twoSum(array, target));
+    }
 }
