@@ -12,4 +12,10 @@ public class LongestSubstringTest {
         assertEquals(1,LongestSubstring.lengthOfLongestSubstring(s));
     }
 
+    @Test
+    void oneSubstringTest() {
+        String s = "abc";
+        assertEquals(3, LongestSubstring.lengthOfLongestSubstring(s));
+    }
+
 }
