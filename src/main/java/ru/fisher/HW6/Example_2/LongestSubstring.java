@@ -8,26 +8,17 @@ public class LongestSubstring {
     public static int lengthOfLongestSubstring(String s) {
         int maxLen = 0;
         for (int i = 0; i < s.length(); i++) {
-            for (int j = i; j < s.length() + 1; j++) {
-                String checkingSubstring = s.substring(i, j);
-                if (checkRepeatElements(checkingSubstring)) {
-                    maxLen = Math.max(maxLen, checkingSubstring.length());
+            Set<Character> noRepeatSet = new HashSet<>();
+            for (int j = i; j < s.length(); j++) {
+                if (noRepeatSet.contains(s.charAt(j))) {
+                    break;
                 }
+                noRepeatSet.add(s.charAt(j));
+                maxLen = Math.max(maxLen, j - i + 1);
             }
         }
 
         return maxLen;
-    }
-
-    public static boolean checkRepeatElements(String s) {
-        Set<Character> noRepeatSet = new HashSet<>();
-        for (int i = 0; i < s.length(); i++) {
-            if (noRepeatSet.contains(s.charAt(i))) {
-                return false;
-            }
-           noRepeatSet.add(s.charAt(i));
-        }
-        return true;
     }
 
 }
