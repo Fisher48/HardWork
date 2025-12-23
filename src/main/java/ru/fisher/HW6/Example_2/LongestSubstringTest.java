@@ -30,4 +30,10 @@ public class LongestSubstringTest {
         assertEquals(1, LongestSubstring.lengthOfLongestSubstring(s));
     }
 
+    @Test
+    void oneSubstringFromThreeCharsWithPartOfSameCharsTest() {
+        String s = "pwwkew";
+        assertEquals(3, LongestSubstring.lengthOfLongestSubstring(s));
+    }
+
 }
