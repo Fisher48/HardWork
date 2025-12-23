@@ -1,6 +1,7 @@
 package ru.fisher.HW6.Example_2;
 
-import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class LongestSubstring {
 
@@ -19,12 +20,12 @@ public class LongestSubstring {
     }
 
     public static boolean checkRepeatElements(String s) {
-        HashMap<Character, Integer> noRepeatMap = new HashMap<>();
+        Set<Character> noRepeatSet = new HashSet<>();
         for (int i = 0; i < s.length(); i++) {
-            if (noRepeatMap.containsKey(s.charAt(i))) {
+            if (noRepeatSet.contains(s.charAt(i))) {
                 return false;
             }
-           noRepeatMap.put(s.charAt(i), i);
+           noRepeatSet.add(s.charAt(i));
         }
         return true;
     }
