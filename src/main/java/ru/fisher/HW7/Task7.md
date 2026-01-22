@@ -7,20 +7,20 @@
 
 **_Пример кода с "неистинным" наследованием:_**
 ```java
-abstract static class Handler {
+abstract class Handler {
     String export() {
         return "Handling....";
     }
 }
 
-static class JsonHandler extends Handler {
+class JsonHandler extends Handler {
     @Override
     String export() {
         return "JSON handling: .....";
     }
 }
 
-static class CsvHandler extends Handler {
+class CsvHandler extends Handler {
     @Override
     String export() {
         return "CSV handling: .....";
@@ -36,21 +36,45 @@ interface Visitor {
     String visit(CsvHandler csvHandler);
 }
 
-abstract static class Handler {
+abstract class Handler {
     abstract String accept(Visitor visitor);
 }
 
-static class JsonHandler extends Handler {
+class JsonHandler extends Handler {
     @Override
     String accept(Visitor visitor) {
         return visitor.visit(this);
     }
 }
 
-static class CsvHandler extends Handler {
+class CsvHandler extends Handler {
     @Override
     String accept(Visitor visitor) {
         return visitor.visit(this);
     }
 }
+
+class ExportVisitor implements Visitor {
+
+    @Override
+    public String visit(JsonHandler handler) {
+        return "JSON handling: .....";
+    }
+
+    @Override
+    public String visit(CsvHandler handler) {
+        return "CSV handling: .....";
+    }
+}
 ```
+
+Вывод:
+Я решил написать такой учебный пример где существует некий обработчик форматов данных.
+В первой версии кода существует АТД класс Handler с методом export(), который затем переопределяется в дочерних классах
+JsonHandler и CsvHandler, классическое "неистинное" наследование.
+Дочерние классы знают про родительские методы, при добавлении или расширении методов можно добавить свои методы 
+в дочерние или изменять в каждом классе, поведение распределяется по иерархии классов.
+
+Во второй версии кода применил паттерн Visitor (насколько я его понял).
+Реализуем интерфейс с методами для любого типа обработчика, метод АТД класса использует интерфейс вместо начальной реализации.
+Бизнес-логика вынесена в отдельные Visitor's (Посетители), Handler уже 
