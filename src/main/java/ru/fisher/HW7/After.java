@@ -36,4 +36,16 @@ public class After {
         }
     }
 
+    static class ImportVisitor implements Visitor {
+        @Override
+        public String visit(JsonHandler jsonHandler) {
+            return "JSON Handler...";
+        }
+
+        @Override
+        public String visit(CsvHandler csvHandler) {
+            return "CSV Handler...";
+        }
+    }
+
 }

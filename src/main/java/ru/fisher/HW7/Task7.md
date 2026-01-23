@@ -8,9 +8,8 @@
 **_Пример кода с "неистинным" наследованием:_**
 ```java
 abstract class Handler {
-    String export() {
-        return "Handling....";
-    }
+    abstract String export();
+    abstract String importData();
 }
 
 class JsonHandler extends Handler {
@@ -18,6 +17,12 @@ class JsonHandler extends Handler {
     String export() {
         return "JSON handling: .....";
     }
+
+    @Override
+    String importData() {
+        return "Import JSON data:.....";
+    }
+
 }
 
 class CsvHandler extends Handler {
@@ -25,6 +30,12 @@ class CsvHandler extends Handler {
     String export() {
         return "CSV handling: .....";
     }
+
+    @Override
+    String importData() {
+        return "Import CSV data:....";
+    }
+
 }
 ```
 ___
@@ -66,15 +77,31 @@ class ExportVisitor implements Visitor {
         return "CSV handling: .....";
     }
 }
+
+class ImportVisitor implements Visitor {
+    @Override
+    public String visit(JsonHandler jsonHandler) {
+        return "JSON Handler...";
+    }
+
+    @Override
+    public String visit(CsvHandler csvHandler) {
+        return "CSV Handler...";
+    }
+}
 ```
 
-Вывод:
-Я решил написать такой учебный пример где существует некий обработчик форматов данных.
+**_Вывод:_**  
+Я решил написать такой учебный пример, где существует некий обработчик форматов данных.  
 В первой версии кода существует АТД класс Handler с методом export(), который затем переопределяется в дочерних классах
 JsonHandler и CsvHandler, классическое "неистинное" наследование.
 Дочерние классы знают про родительские методы, при добавлении или расширении методов можно добавить свои методы 
-в дочерние или изменять в каждом классе, поведение распределяется по иерархии классов.
+в дочерние или изменять в каждом классе.
+По сути теряется смысл в родительском классе, ведь все новые унаследованные классы полностью переписывают поведение с нуля. 
+Если появляется новый класс, то вся логика будет дальше растягиваться по иерархии.
 
 Во второй версии кода применил паттерн Visitor (насколько я его понял).
 Реализуем интерфейс с методами для любого типа обработчика, метод АТД класса использует интерфейс вместо начальной реализации.
-Бизнес-логика вынесена в отдельные Visitor's (Посетители), Handler уже 
+Бизнес-логика вынесена в отдельные Visitor's (Посетители), Handler уже простые и не содержат логику.
+Новые операции добавляются как отдельные классы. Конечно это сложнее понимать, и каждый новый Handler это правка в Посетителя.
+Если операций мало, то такой паттерн избыточен и лучше ограничится обычным полиморфизмом.

@@ -1,24 +1,35 @@
 package ru.fisher.HW7;
 
 public class Before {
-    abstract static class Handler {
-        String export() {
-            return "Handling....";
-        }
+    abstract class Handler {
+        abstract String export();
+        abstract String importData();
     }
 
-    static class JsonHandler extends Handler {
+    class JsonHandler extends Handler {
         @Override
         String export() {
             return "JSON handling: .....";
         }
+
+        @Override
+        String importData() {
+            return "Import JSON data:.....";
+        }
+
     }
 
-    static class CsvHandler extends Handler {
+    class CsvHandler extends Handler {
         @Override
         String export() {
             return "CSV handling: .....";
         }
+
+        @Override
+        String importData() {
+            return "Import CSV data:....";
+        }
+
     }
 
 }
