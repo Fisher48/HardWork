@@ -1,6 +1,5 @@
 package ru.fisher.HW8;
 
-import ru.fisher.HW7.After;
 
 public class Mixin {
     interface Visitor {
