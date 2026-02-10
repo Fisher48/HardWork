@@ -508,11 +508,112 @@ public void addProductWithQuantity(Long cartId, Long productId, Integer quantity
 **_1.5. Чрезмерный результат. Метод возвращает больше данных, чем нужно вызывающему его компоненту._**
 ```java
 // До
+// В данном контроллере для последующих операций требуется id Корзины, но контроллер получает саму сущность Корзины,
+// при то что она целиком не требуется со всеми связями.
+@PostMapping("/add")
+public String addToCart(@RequestParam Long productId,
+                        @RequestParam(defaultValue = "1") Integer quantity,
+                        @RequestParam(defaultValue = "cart") String redirectTo,
+                        @CookieValue(value = "sessionId", required = false) String sessionId,
+                        HttpServletResponse response, HttpSession session,
+                        @RequestHeader(value = "Referer", required = false) String referer,
+                        RedirectAttributes redirectAttributes) {
 
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String finalSessionId = getOrCreateSessionId(sessionId, response);
+    Long userId = getCurrentUserId(authentication);
+
+    // Получение корзины (больше данных, чем нужно вызывающему компоненту)
+    Cart cart = cartService.getOrCreateCart(userId, finalSessionId);
+    cartService.addProductWithQuantity(cart.getId(), productId, quantity);
+
+    // Обновляем счетчик в сессии
+    int totalItems = cartService.getCartItemCount(cart.getId());
+    session.setAttribute("cartItemCount", totalItems);
+    
+    if ("product".equals(redirectTo) || (referer != null && referer.contains("/product/"))) {
+        redirectAttributes.addFlashAttribute("cartMessage", "Товар добавлен в корзину");
+    }
+
+    return determineRedirectUrl(redirectTo, productId, referer);
+}
+
+// В репозитории
+Optional<Cart> findBySessionId(String sessionId);
+
+Optional<Cart> findByUserId(Long userId);
+
+// В сервисе
+@Transactional
+public Cart getOrCreateCart(Long userId, String sessionId) {
+    if (userId != null) {
+        return cartRepository.findByUserId(userId)
+                .orElseGet(() -> createCartForUser(userId));
+    }
+
+    // Анонимная корзина
+    return cartRepository.findBySessionId(sessionId)
+            .orElseGet(() -> {
+                Cart cart = Cart.builder()
+                        .sessionId(sessionId)
+                        .build();
+                return cartRepository.save(cart);
+            });
+}
 ```
 ___
 
 ```java
-// После
+// После контролер получает только cardId
+@PostMapping("/add")
+public String addToCart(@RequestParam Long productId,
+                        @RequestParam(defaultValue = "1") Integer quantity,
+                        @RequestParam(defaultValue = "cart") String redirectTo,
+                        @CookieValue(value = "sessionId", required = false) String sessionId,
+                        HttpServletResponse response, HttpSession session,
+                        @RequestHeader(value = "Referer", required = false) String referer,
+                        RedirectAttributes redirectAttributes) {
 
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String finalSessionId = getOrCreateSessionId(sessionId, response);
+    Long userId = getCurrentUserId(authentication);
+
+    Long cartId = cartService.getOrCreateCart(userId, finalSessionId);
+    cartService.addProductWithQuantity(cartId, productId, quantity);
+
+    // Обновляем счетчик в сессии
+    int totalItems = cartService.getCartItemCount(cartId);
+    session.setAttribute("cartItemCount", totalItems);
+    
+    if ("product".equals(redirectTo) || (referer != null && referer.contains("/product/"))) {
+        redirectAttributes.addFlashAttribute("cartMessage", "Товар добавлен в корзину");
+    }
+
+    return determineRedirectUrl(redirectTo, productId, referer);
+}
+
+// В репозитории
+Optional<Long> findBySessionId(String sessionId);
+
+Optional<Long> findByUserId(Long userId);
+
+// В сервисе
+@Transactional
+public Long getOrCreateCart(Long userId, String sessionId) {
+    if (userId != null) {
+        return cartRepository.findByUserId(userId)
+                .orElseGet(() -> createCartForUser(userId));
+    }
+
+    // Анонимная корзина
+    return cartRepository.findBySessionId(sessionId)
+            .orElseGet(() -> {
+                Cart cart = Cart.builder()
+                        .sessionId(sessionId)
+                        .build();
+                return cartRepository.save(cart);
+            });
+}
 ```
+Если обратить внимание, то в коде нет необходимости тащить всю сущность Корзины (Cart), да и нельзя работать так напрямую с сущностями (лучше ДТО).
+Изменил методы в сервисе и репозитории для получения только id Корзины, вместо получения всей сущности с кучей не нужной информации.
