@@ -302,10 +302,15 @@ public class PriceFormatter {
 }
 
 // Форматируем цену в указанной валюте. Создаем поддерживаемый и расширяемый набор валют через enum Currency
-enum Currency {
-    RUB("₽"),
-    USD("$"),
-    EUR("€");
+public enum Currency {
+    RUB("₽", "рубль"),
+    USD("$", "доллар"),
+    EUR("€", "евро");
+
+    private final String symbol;
+    private final String name;
+
+    // --- //
 }
 ```
 
@@ -374,6 +379,95 @@ public Page<ProductAdminDto> search(ProductSearchRequest request) {
 
 ___
 
-### Интерфейс проще реализации
+### Когда интерфейс явно не должен быть проще реализации
+**_Пример 1:_**
+```java
+public interface TransferService {
+    void transfer(Account from, Account to, BigDecimal amount);
+}
+```
+Метод перевода денег, не учитывает множество факторов - нельзя понять результат, узнать комиссию, обработать ошибку и т.д.  
+Если создать отдельный класс как результат и запрос перевода, в котором будут показаны все действия.
+```java
+public interface TransferService { 
+    TransferResult transfer(TransferRequest request);
+}
 
+record TransferRequest(
+        AccountId from, 
+        AccountId to, 
+        Money amount,
+        TransferOptions options
+) {}
+
+record TransferResult(
+        boolean success, 
+        String error, 
+        BigDecimal fee, 
+        BigDecimal totalAmount, 
+        Instant timestamp
+) {}
+```
+
+**_Пример 2:_**
+```java
+public interface DataExporter {
+    void export(String data, String destination);
+}
+```
+Экспорт данных, сейчас просто данные и назначение. Но нужно учитывать много факторов - формат, тип файла, кодировка, разрешить ли перезапись и т.д.  
+Лучше раскрыть бизнес логику добавив ExportRequest и ExportResult.
+
+```java
+public interface DataExporter {
+    ExportResult export(ExportRequest request);
+}
+
+public record ExportRequest(
+        String data, 
+        DataFormat format,      // json, csv, xml
+        DestinationType target, // file, url, email
+        String destination,
+        Charset encoding,
+        boolean overwrite
+) {}
+
+public record ExportResult(
+        boolean success, 
+        String destinationPath, 
+        ExportStatistics stats, 
+        Optional<String> errors
+) {}
+```
+
+**_Пример 3:_**
+```java
+public interface EmailSender {
+    void send(String to, String subject, String body);
+}
+```
+Отправка сообщений, учитывает много факторов и возможно параметры конфигурации были бы кстати в этом случае и
+следует лучше расширить интерфейс с помощью типа EmailRequest.
+
+```java
+public interface EmailSender {
+    EmailResult send(EmailRequest request);
+}
+
+public record EmailRequest(
+        String to, 
+        String from, 
+        String subject, 
+        String body, 
+        List<String> cc, 
+        List<Attachment> attachments, 
+        Integer priority
+) {}
+```
+
+Интерфейс не должен быть проще реализации в тех случаях, когда в реализации присутствует существенная для пользователя логика: 
+параметры конфигурации, бизнес-правила или различные исходы выполнения. Если важная логика скрыта стоит расширить интерфейс через типы.  
+Упрощение интерфейса в таких случаях приводит к тому, что пользователь не понимает, как правильно использовать API 
+и какие гарантии он получает, а также как обрабатывать результат.  
+Лучше скрыть как это работает, но при этом нужно показывать как этим пользоваться.
 
